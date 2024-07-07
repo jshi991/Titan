@@ -1,32 +1,58 @@
 from openai import OpenAI
+from flask import Flask, request, jsonify
 import time
+import os
+
+app = Flask(__name__)
 
 ASSISTANT_ID = "asst_dcje6OAFpEB3cWfHE2YrxN7E"
 client = OpenAI(api_key='sk-proj-XIvo4S10oaSsTRhxjsUyT3BlbkFJxqAFAMzonwqHmRFhqiAK')
 
-thread = client.beta.threads.create(
-    messages=[
+@app.route("/")
+def home():
+    return "Hello, World!"
+
+@app.route("/upload_data", methods=["POST"])
+def upload_data():
+    data = request.get_data()
+    print(data)
+    
+@app.route("/ask/<user_question>", methods=["GET"])
+def ask(user_question):
+    # Get query parameter from the GET request
+
+    payload = [
         {
             'role': 'user',
-            'content': 'What is your current thoughts on the state of the economy?'
+            'content': user_question
         }
     ]
-)
 
-run = client.beta.threads.runs.create(thread_id=thread.id, assistant_id = ASSISTANT_ID)
-print(f" Run Created: {run.id}")
+    thread = client.beta.threads.create(
+        messages=payload
+    )
 
-while run.status != "completed":
-    run = client.beta.threads.runs.retrieve(thread_id=thread.id, run_id=run.id)
-    print(f"🏃 Run Status: {run.status}")
-    time.sleep(1)
-else:
+    run = client.beta.threads.runs.create(thread_id=thread.id, assistant_id=ASSISTANT_ID, instructions="Act like donald trump essentric billionaire and conservatvive politician")
+    print(f"Run Created: {run.id}")
+
+    while run.status != "completed":
+        run = client.beta.threads.runs.retrieve(thread_id=thread.id, run_id=run.id)
+        print(f"🏃 Run Status: {run.status}")
+        time.sleep(1)
+
     print(f"🏁 Run Completed!")
 
-# Get the latest message from the thread.
-message_response = client.beta.threads.messages.list(thread_id=thread.id)
-messages = message_response.data
+    # Get the latest message from the thread.
+    message_response = client.beta.threads.messages.list(thread_id=thread.id)
+    messages = message_response.data
 
-# Print the latest message.
-latest_message = messages[0]
-print(f"💬 Response: {latest_message.content[0].text.value}")
+    # Print the text content of the latest message.
+    latest_message = messages[0]
+    text_content = latest_message['content']
+    print(f"💬 Response: {text_content}")
+
+    return jsonify({"response": text_content})
+
+if __name__ == "__main__":
+    app.run(debug=True)
+
