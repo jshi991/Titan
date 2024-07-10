@@ -1,17 +1,39 @@
+"use client"; 
+
 import { Group, Text, rem } from '@mantine/core';
 import { IconUpload, IconPhoto, IconX } from '@tabler/icons-react';
 import { Dropzone, DropzoneProps, IMAGE_MIME_TYPE } from '@mantine/dropzone';
-import { useSetState } from '@mantine/hooks';
+import React, { useState } from 'react';
 
-const [loading, setLoading] = useSetState({ loading: false });
-const handleDrop = (files : File) => {
-    
-}
-export function BaseDemo(props: Partial<DropzoneProps>) {
+export default function UploadData(props: Partial<DropzoneProps>) {
+  const [loading, setLoading] = useState(false);
+
+  const handleDrop = (files: File[]) => {
+    setLoading(true);
+
+    const formData = new FormData();
+    files.forEach(file => {
+      formData.append('file', file);
+    });
+
+    fetch('http://127.0.0.1:5000/upload_data', {
+      method: 'POST',
+      body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+      console.log('Success:', data);
+      setLoading(false);
+    })
+    .catch((error) => {
+      console.error('Error:', error);
+      setLoading(false);
+    });
+  };
+
   return (
     <Dropzone
-     
-      onDrop={(files) => console.log('accepted files', files)}
+      onDrop={handleDrop}
       onReject={(files) => console.log('rejected files', files)}
       maxSize={5 * 1024 ** 2}
       accept={IMAGE_MIME_TYPE}
@@ -39,7 +61,7 @@ export function BaseDemo(props: Partial<DropzoneProps>) {
 
         <div>
           <Text size="xl" inline>
-            Drag images here or click to select files
+            {loading ? 'Uploading...' : 'Drag images here or click to select files'}
           </Text>
           <Text size="sm" c="dimmed" inline mt={7}>
             Attach as many files as you like, each file should not exceed 5mb

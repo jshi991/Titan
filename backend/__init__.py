@@ -14,8 +14,30 @@ def home():
 
 @app.route("/upload_data", methods=["POST"])
 def upload_data():
-    data = request.get_data()
-    print(data)
+    if request.content_type == 'application/json':
+        data = request.get_json()
+        print("Received JSON data:", data)
+        # Process JSON data
+        response = {"status": "success", "data_type": "json", "data": data}
+
+    elif request.content_type == 'text/plain':
+        data = request.get_data(as_text=True)
+        print("Received text data:", data)
+        # Process text data
+        response = {"status": "success", "data_type": "text", "data": data}
+
+    elif request.content_type == 'text/csv':
+        data = request.get_data(as_text=True)
+        print("Received CSV data:", data)
+        # Process CSV data
+        csv_reader = csv.reader(io.StringIO(data))
+        csv_data = [row for row in csv_reader]
+        response = {"status": "success", "data_type": "csv", "data": csv_data}
+
+    else:
+        response = {"status": "error", "message": "Unsupported content type"}
+
+    return jsonify(response)
     
 @app.route("/ask/<user_question>", methods=["GET"])
 def ask(user_question):
