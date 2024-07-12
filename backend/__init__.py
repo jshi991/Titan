@@ -1,9 +1,13 @@
 from openai import OpenAI
 from flask import Flask, request, jsonify
+from flask_cors import CORS, cross_origin
+
 import time
-import os
 
 app = Flask(__name__)
+cors = CORS(app)
+app.config['CORS_HEADERS'] = 'Content-Type'
+
 
 ASSISTANT_ID = "asst_dcje6OAFpEB3cWfHE2YrxN7E"
 client = OpenAI(api_key='sk-proj-XIvo4S10oaSsTRhxjsUyT3BlbkFJxqAFAMzonwqHmRFhqiAK')
@@ -54,7 +58,7 @@ def ask(user_question):
         messages=payload
     )
 
-    run = client.beta.threads.runs.create(thread_id=thread.id, assistant_id=ASSISTANT_ID, instructions="Act like donald trump essentric billionaire and conservatvive politician")
+    run = client.beta.threads.runs.create(thread_id=thread.id, assistant_id=ASSISTANT_ID, instructions="Act like Donald Trump, eccentric billionaire and conservative politician")
     print(f"Run Created: {run.id}")
 
     while run.status != "completed":
@@ -68,12 +72,13 @@ def ask(user_question):
     message_response = client.beta.threads.messages.list(thread_id=thread.id)
     messages = message_response.data
 
-    # Print the text content of the latest message.
-    latest_message = messages[0]
-    text_content = latest_message['content']
+    # Assuming messages[0].content extracts the text content from TextContentBlock
+    text_content = messages[0].content
+
     print(f"💬 Response: {text_content}")
 
     return jsonify({"response": text_content})
+
 
 if __name__ == "__main__":
     app.run(debug=True)
