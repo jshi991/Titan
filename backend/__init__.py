@@ -1,85 +1,105 @@
-from openai import OpenAI
-from flask import Flask, request, jsonify
-from flask_cors import CORS, cross_origin
-
-import time
+import os
+import torch
+from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
+from torch.utils.data import DataLoader, Dataset
+from transformers import GPT2Tokenizer, GPT2LMHeadModel, AdamW, get_linear_schedule_with_warmup
+import shutil
 
 app = Flask(__name__)
-cors = CORS(app)
-app.config['CORS_HEADERS'] = 'Content-Type'
+CORS(app)
 
+# Define a simple custom dataset
+class TextDataset(Dataset):
+    def __init__(self, texts, tokenizer, max_length):
+        self.tokenizer = tokenizer
+        self.texts = texts
+        self.max_length = max_length
 
-ASSISTANT_ID = "asst_dcje6OAFpEB3cWfHE2YrxN7E"
-client = OpenAI(api_key='sk-proj-XIvo4S10oaSsTRhxjsUyT3BlbkFJxqAFAMzonwqHmRFhqiAK')
+    def __len__(self):
+        return len(self.texts)
 
-@app.route("/")
-def home():
-    return "Hello, World!"
+    def __getitem__(self, idx):
+        encoding = self.tokenizer(
+            self.texts[idx],
+            truncation=True,
+            padding='max_length',
+            max_length=self.max_length,
+            return_tensors="pt"
+        )
+        return {key: val.squeeze(0) for key, val in encoding.items()}
 
-@app.route("/upload_data", methods=["POST"])
-def upload_data():
-    if request.content_type == 'application/json':
-        data = request.get_json()
-        print("Received JSON data:", data)
-        # Process JSON data
-        response = {"status": "success", "data_type": "json", "data": data}
-
-    elif request.content_type == 'text/plain':
-        data = request.get_data(as_text=True)
-        print("Received text data:", data)
-        # Process text data
-        response = {"status": "success", "data_type": "text", "data": data}
-
-    elif request.content_type == 'text/csv':
-        data = request.get_data(as_text=True)
-        print("Received CSV data:", data)
-        # Process CSV data
-        csv_reader = csv.reader(io.StringIO(data))
-        csv_data = [row for row in csv_reader]
-        response = {"status": "success", "data_type": "csv", "data": csv_data}
-
-    else:
-        response = {"status": "error", "message": "Unsupported content type"}
-
-    return jsonify(response)
+# Fine-tuning function
+def fine_tune(model, tokenizer, train_texts, epochs=3, batch_size=8, lr=5e-5):
+    train_dataset = TextDataset(train_texts, tokenizer, max_length=512)
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     
-@app.route("/ask/<user_question>", methods=["GET"])
-def ask(user_question):
-    # Get query parameter from the GET request
-
-    payload = [
-        {
-            'role': 'user',
-            'content': user_question
-        }
-    ]
-
-    thread = client.beta.threads.create(
-        messages=payload
+    optimizer = AdamW(model.parameters(), lr=lr)
+    num_training_steps = epochs * len(train_dataloader)
+    lr_scheduler = get_linear_schedule_with_warmup(
+        optimizer,
+        num_warmup_steps=0,
+        num_training_steps=num_training_steps
     )
+    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    model.train()
+    
+    for epoch in range(epochs):
+        for batch in train_dataloader:
+            batch = {key: val.to(device) for key, val in batch.items()}
+            outputs = model(**batch, labels=batch["input_ids"])
+            loss = outputs.loss
+            loss.backward()
 
-    run = client.beta.threads.runs.create(thread_id=thread.id, assistant_id=ASSISTANT_ID, instructions="Act like Donald Trump, eccentric billionaire and conservative politician")
-    print(f"Run Created: {run.id}")
+            optimizer.step()
+            lr_scheduler.step()
+            optimizer.zero_grad()
+        
+        print(f"Epoch {epoch + 1} completed with loss: {loss.item()}")
+    
+    return model
 
-    while run.status != "completed":
-        run = client.beta.threads.runs.retrieve(thread_id=thread.id, run_id=run.id)
-        print(f"🏃 Run Status: {run.status}")
-        time.sleep(1)
+# Load pre-trained model and tokenizer
+model_name = "gpt2"  # Replace with 'gpt-3.5' once available
+tokenizer = GPT2Tokenizer.from_pretrained(model_name)
+model = GPT2LMHeadModel.from_pretrained(model_name)
 
-    print(f"🏁 Run Completed!")
+# Set pad token
+tokenizer.pad_token = tokenizer.eos_token
 
-    # Get the latest message from the thread.
-    message_response = client.beta.threads.messages.list(thread_id=thread.id)
-    messages = message_response.data
+# Directory to save the fine-tuned model
+model_dir = './fine-tuned-gpt'
 
-    # Assuming messages[0].content extracts the text content from TextContentBlock
-    text_content = messages[0].content
+@app.route('/upload_data', methods=['POST'])
+def upload_data():
+    data = request.json
+    train_texts = data.get('texts', [])
+    
+    if not train_texts:
+        return jsonify({"error": "No texts provided for training"}), 400
+    
+    # Fine-tune the model
+    fine_tuned_model = fine_tune(model, tokenizer, train_texts)
+    
+    # Save the model and tokenizer
+    fine_tuned_model.save_pretrained(model_dir)
+    tokenizer.save_pretrained(model_dir)
+    
+    return jsonify({"message": "Model fine-tuned and saved successfully"}), 200
 
-    print(f"💬 Response: {text_content}")
+@app.route('/download_model', methods=['GET'])
+def download_model():
+    # Ensure the model directory exists
+    if not os.path.exists(model_dir):
+        return jsonify({"error": "Model not found"}), 404
 
-    return jsonify({"response": text_content})
+    # Zip the model directory
+    zip_path = shutil.make_archive(model_dir, 'zip', model_dir)
+    
+    # Send the zip file to the client
+    return send_from_directory(directory=os.path.dirname(zip_path), filename=os.path.basename(zip_path), as_attachment=True)
 
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     app.run(debug=True)
-
