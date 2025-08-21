@@ -1,0 +1,43 @@
+[
+  {"text": "Hello there, how are you doing today?", "label": "greeting"},
+  {"text": "Hi! Nice to meet you!", "label": "greeting"},
+  {"text": "Good morning, I hope you're well", "label": "greeting"},
+  {"text": "Hey, what's up?", "label": "greeting"},
+  {"text": "Greetings and welcome!", "label": "greeting"},
+  
+  {"text": "What's the weather like today?", "label": "weather"},
+  {"text": "Is it going to rain tomorrow?", "label": "weather"},
+  {"text": "How hot is it outside?", "label": "weather"},
+  {"text": "Will it be sunny this weekend?", "label": "weather"},
+  {"text": "I heard there might be snow", "label": "weather"},
+  
+  {"text": "Thank you so much for your help!", "label": "gratitude"},
+  {"text": "I really appreciate your assistance", "label": "gratitude"},
+  {"text": "Thanks, that was very helpful", "label": "gratitude"},
+  {"text": "I'm grateful for your support", "label": "gratitude"},
+  {"text": "Much appreciated!", "label": "gratitude"},
+  
+  {"text": "I need help with my account", "label": "support"},
+  {"text": "Can you assist me with this problem?", "label": "support"},
+  {"text": "I'm having trouble logging in", "label": "support"},
+  {"text": "Something seems to be broken", "label": "support"},
+  {"text": "Could you help me resolve this issue?", "label": "support"},
+  
+  {"text": "What time do you close?", "label": "information"},
+  {"text": "Where is your office located?", "label": "information"},
+  {"text": "How can I contact customer service?", "label": "information"},
+  {"text": "What are your business hours?", "label": "information"},
+  {"text": "Do you have a phone number I can call?", "label": "information"},
+  
+  {"text": "I'm feeling great today!", "label": "emotion"},
+  {"text": "This makes me really happy", "label": "emotion"},
+  {"text": "I'm quite upset about this situation", "label": "emotion"},
+  {"text": "That's amazing news!", "label": "emotion"},
+  {"text": "I feel frustrated with this", "label": "emotion"},
+  
+  {"text": "Please cancel my order immediately", "label": "request"},
+  {"text": "I'd like to return this item", "label": "request"},
+  {"text": "Can you process my refund?", "label": "request"},
+  {"text": "Please update my shipping address", "label": "request"},
+  {"text": "I want to change my subscription", "label": "request"}
+]

@@ -1,0 +1,22 @@
+text,label
+"Hello, how are you doing today?",greeting
+"Hi there, nice to meet you!",greeting
+"Good morning, hope you're well",greeting
+"What's the weather like today?",weather
+"Is it going to rain tomorrow?",weather
+"How's the temperature outside?",weather
+"Thank you so much for your help!",gratitude
+"I really appreciate your assistance",gratitude
+"Thanks, that was very helpful",gratitude
+"I need help with my account",support
+"Can you assist me with this issue?",support
+"I'm having trouble with the login",support
+"What time do you close?",information
+"Where is your office located?",information
+"How can I contact customer service?",information
+"I'm feeling great today!",emotion
+"This makes me really happy",emotion
+"I'm quite upset about this",emotion
+"Please cancel my order",request
+"I'd like to return this item",request
+"Can you process my refund?",request
